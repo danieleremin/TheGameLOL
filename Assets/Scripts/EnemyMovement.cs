@@ -1,3 +1,4 @@
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -7,10 +8,19 @@ public class EnemyMovement : MonoBehaviour
     public LayerMask obstacleLayerMask = -1; //when layers block line of sight
     private NavMeshAgent enemyMeshAgent;
 
+    Camera playerCam;
+    MeshRenderer tempRend;
+    Plane[] cameraFrustum;
+    Collider frustumCollider;
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         enemyMeshAgent = GetComponent<NavMeshAgent>();
+
+        playerCam = Camera.main;
+        tempRend = GetComponent<MeshRenderer>();
+        frustumCollider = transform.Find("EnemyBody").GetComponent<Collider>();
     }
 
     // Update is called once per frame
@@ -18,13 +28,16 @@ public class EnemyMovement : MonoBehaviour
     //Please find a better way to do make the update loop that involves setting the speed to zero or using isStopped on the enemyMeshAgent.
     void Update()
     {
-        if (player != null && !CanSeePlayer())
+        if (player != null)
         {
-            enemyMeshAgent.SetDestination(player.position);
-        }
-        else
-        {
-            enemyMeshAgent.SetDestination(transform.position);
+            if (CanSeePlayer() && PlayerLooking())
+            {
+                enemyMeshAgent.SetDestination(transform.position);
+            }
+            else
+            {
+                enemyMeshAgent.SetDestination(player.position);
+            }
         }
     }
 
@@ -42,5 +55,19 @@ public class EnemyMovement : MonoBehaviour
 
         // if no obstacles hit within player distance, the player can be seen
         return true;
+    }
+
+    bool PlayerLooking()
+    {
+        var bounds = frustumCollider.bounds;
+        cameraFrustum = GeometryUtility.CalculateFrustumPlanes(playerCam);
+        if (GeometryUtility.TestPlanesAABB(cameraFrustum, bounds))
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 }
